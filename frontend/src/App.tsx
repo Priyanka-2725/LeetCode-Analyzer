@@ -152,6 +152,55 @@ function SkeletonPulse() {
   );
 }
 
+function SectionShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-bold text-white tracking-tight">{title}</h2>
+        <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function DataLockedState({ onGoDashboard }: { onGoDashboard: () => void }) {
+  return (
+    <div
+      className="rounded-[18px] p-7"
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      <h3 className="text-lg font-semibold text-slate-100">Analyze a profile to unlock this section</h3>
+      <p className="text-sm text-slate-400 mt-2 max-w-xl">
+        This area uses personalized activity history and submission events. Start with a username on
+        the Dashboard first.
+      </p>
+      <button
+        onClick={onGoDashboard}
+        className="mt-5 text-sm font-semibold px-4 py-2 rounded-[11px]"
+        style={{
+          background: 'rgba(99,102,241,0.18)',
+          border: '1px solid rgba(99,102,241,0.35)',
+          color: '#C7D2FE',
+        }}
+      >
+        Go To Dashboard
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const {
     data,
@@ -170,6 +219,104 @@ export default function App() {
 
   const showDashboard = loadingState === 'success' && data;
 
+  const renderSection = () => {
+    if (!showDashboard) {
+      if (activeSection === 'dashboard') {
+        return <LandingHero onAnalyze={analyze} loading={false} />;
+      }
+      return <DataLockedState onGoDashboard={() => setActiveSection('dashboard')} />;
+    }
+
+    if (activeSection === 'dashboard') {
+      return (
+        <motion.div
+          key="dashboard"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <div className="mb-6">
+            <FuturisticInput onAnalyze={analyze} loading={false} />
+          </div>
+          <FuturisticDashboard
+            data={data!}
+            history={history}
+            events={events}
+            patterns={patterns}
+            forecast={forecast}
+            analyticsLoading={analyticsLoading}
+            exportUrl={exportUrl}
+          />
+        </motion.div>
+      );
+    }
+
+    const points = history?.points || [];
+    const recentPoints = [...points].slice(-14).reverse();
+    const recentEvents = (events?.events || []).slice(0, 20);
+
+    return (
+      <motion.div
+        key="history"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
+        <SectionShell
+          title="History"
+          subtitle="Daily snapshots and your latest solved-problem events."
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-[16px] p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Snapshots Loaded</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{points.length}</p>
+            </div>
+            <div className="rounded-[16px] p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Events Loaded</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{events?.count || 0}</p>
+            </div>
+            <div className="rounded-[16px] p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Best Weekday</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{patterns?.bestWeekday || 'N/A'}</p>
+            </div>
+            <div className="rounded-[16px] p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Days To 500</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{forecast?.daysToTarget ?? 'N/A'}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="rounded-[16px] p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <h3 className="text-sm font-semibold text-slate-200 mb-3">Latest Snapshots</h3>
+              <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
+                {recentPoints.map((point) => (
+                  <div key={point.snapshotDate} className="flex items-center justify-between text-sm py-2 border-b border-white/5">
+                    <span className="text-slate-400">{point.snapshotDate}</span>
+                    <span className="text-slate-100 font-semibold">Solved {point.totalSolved} · Streak {point.streak}</span>
+                  </div>
+                ))}
+                {recentPoints.length === 0 && <p className="text-sm text-slate-500">No snapshots available.</p>}
+              </div>
+            </div>
+
+            <div className="rounded-[16px] p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <h3 className="text-sm font-semibold text-slate-200 mb-3">Recent Submissions</h3>
+              <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
+                {recentEvents.map((event) => (
+                  <div key={`${event.submissionId}-${event.timestamp}`} className="py-2 border-b border-white/5">
+                    <p className="text-sm text-slate-200 leading-snug">{event.title}</p>
+                    <p className="text-xs text-slate-500 mt-1">{event.difficulty} · {event.submittedAt}</p>
+                  </div>
+                ))}
+                {recentEvents.length === 0 && <p className="text-sm text-slate-500">No submission events available.</p>}
+              </div>
+            </div>
+          </div>
+        </SectionShell>
+      </motion.div>
+    );
+  };
+
   return (
     <DashboardLayout
       username={data?.username}
@@ -182,10 +329,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {!showDashboard && loadingState !== 'loading' && (
-        <LandingHero onAnalyze={analyze} loading={false} />
-      )}
-
       {loadingState === 'loading' && (
         <div className="pt-6">
           <div className="flex items-center gap-3 mb-8 px-1">
@@ -196,29 +339,9 @@ export default function App() {
         </div>
       )}
 
-      <AnimatePresence>
-        {showDashboard && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="mb-6">
-              <FuturisticInput onAnalyze={analyze} loading={false} />
-            </div>
-            <FuturisticDashboard
-              data={data!}
-              history={history}
-              events={events}
-              patterns={patterns}
-              forecast={forecast}
-              analyticsLoading={analyticsLoading}
-              exportUrl={exportUrl}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {loadingState !== 'loading' && (
+        <AnimatePresence mode="wait">{renderSection()}</AnimatePresence>
+      )}
     </DashboardLayout>
   );
 }
