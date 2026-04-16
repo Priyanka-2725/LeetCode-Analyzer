@@ -28,6 +28,18 @@ app.use(express.json());
 // Routes
 app.use('/api', analyzeRouter);
 
+// Root route
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'LeetCode Analyzer backend is running',
+    endpoints: {
+      health: '/health',
+      analyze: '/api/analyze',
+    },
+  });
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
