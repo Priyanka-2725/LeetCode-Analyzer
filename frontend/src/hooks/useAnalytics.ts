@@ -87,17 +87,50 @@ export function useAnalytics(): UseAnalyticsReturn {
       setAnalyticsLoading(true);
 
       const username = result.username || trimmed;
-      const [historyRes, eventsRes, patternsRes, forecastRes] = await Promise.all([
+      const [historyRes, eventsRes, patternsRes, forecastRes] = await Promise.allSettled([
         fetchHistory(username, 60),
         fetchEvents(username, 120),
         fetchPatterns(username),
         fetchForecast(username, 500),
       ]);
 
-      setHistory(historyRes);
-      setEvents(eventsRes);
-      setPatterns(patternsRes);
-      setForecast(forecastRes);
+      setHistory(
+        historyRes.status === 'fulfilled'
+          ? historyRes.value
+          : { username, days: 60, points: [] },
+      );
+
+      setEvents(
+        eventsRes.status === 'fulfilled'
+          ? eventsRes.value
+          : { username, count: 0, events: [] },
+      );
+
+      setPatterns(
+        patternsRes.status === 'fulfilled'
+          ? patternsRes.value
+          : {
+            username,
+            totalEvents: 0,
+            bestWeekday: 'Sun',
+            bestHourUtc: 0,
+            weekdayCounts: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 },
+            hourCounts: Array.from({ length: 24 }, () => 0),
+          },
+      );
+
+      setForecast(
+        forecastRes.status === 'fulfilled'
+          ? forecastRes.value
+          : {
+            username,
+            target: 500,
+            currentTotalSolved: result.totalSolved,
+            avgDailyProgress: 0,
+            daysToTarget: null,
+            projectedDate: null,
+          },
+      );
       setExportUrl(getExportUrl(username));
       setLoadingState('success');
     } catch (err) {

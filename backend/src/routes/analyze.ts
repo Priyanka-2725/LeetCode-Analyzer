@@ -212,7 +212,8 @@ router.get('/history/:username', async (req: Request, res: Response): Promise<vo
     const history = await getSnapshotHistory(username, days);
     res.json({ username: username.toLowerCase(), days, points: history });
   } catch {
-    res.status(500).json({ error: 'Failed to fetch historical analytics' });
+    // Degrade gracefully when persistence is unavailable.
+    res.json({ username: username.toLowerCase(), days, points: [] });
   }
 });
 
@@ -224,7 +225,8 @@ router.get('/events/:username', async (req: Request, res: Response): Promise<voi
     const events = await getSubmissionEvents(username, limit);
     res.json({ username: username.toLowerCase(), count: events.length, events });
   } catch {
-    res.status(500).json({ error: 'Failed to fetch submission events' });
+    // Degrade gracefully when persistence is unavailable.
+    res.json({ username: username.toLowerCase(), count: 0, events: [] });
   }
 });
 
@@ -248,7 +250,15 @@ router.get('/patterns/:username', async (req: Request, res: Response): Promise<v
     const patterns = await getProductivityPatterns(username);
     res.json({ username: username.toLowerCase(), ...patterns });
   } catch {
-    res.status(500).json({ error: 'Failed to compute productivity patterns' });
+    // Degrade gracefully when persistence is unavailable.
+    res.json({
+      username: username.toLowerCase(),
+      totalEvents: 0,
+      bestWeekday: 'Sun',
+      bestHourUtc: 0,
+      weekdayCounts: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 },
+      hourCounts: Array.from({ length: 24 }, () => 0),
+    });
   }
 });
 
@@ -260,7 +270,15 @@ router.get('/forecast/:username', async (req: Request, res: Response): Promise<v
     const forecast = await getGoalForecast(username, target);
     res.json({ username: username.toLowerCase(), ...forecast });
   } catch {
-    res.status(500).json({ error: 'Failed to generate goal forecast' });
+    // Degrade gracefully when persistence is unavailable.
+    res.json({
+      username: username.toLowerCase(),
+      target,
+      currentTotalSolved: 0,
+      avgDailyProgress: 0,
+      daysToTarget: null,
+      projectedDate: null,
+    });
   }
 });
 
