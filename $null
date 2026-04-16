@@ -1,0 +1,5 @@
+unknown shorthand flag: 'f' in -f
+
+Usage:  docker stop [OPTIONS] CONTAINER [CONTAINER...]
+
+Run 'docker stop --help' for more information
