@@ -1,0 +1,49 @@
+services:
+  # ── MongoDB (Atlas - manual setup) ──────────────────────────────────────────
+  # Use MongoDB Atlas free tier: https://www.mongodb.com/cloud/atlas
+  # Create a cluster and get connection string, then use in backend env vars
+
+  # ── Redis (Render managed) ──────────────────────────────────────────────────
+  - type: redis
+    name: leetcode-redis
+    ipAllowList: []  # Allow all IPs
+
+  # ── Backend API (Node.js / Express) ────────────────────────────────────────
+  - type: web
+    name: leetcode-backend
+    runtime: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && node dist/index.js
+    envVars:
+      - key: PORT
+        value: 5001
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromService:
+          type: mongodb
+          name: # Will be set manually via MongoDB Atlas
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: leetcode-redis
+          property: connectionString
+      - key: CACHE_TTL_SECONDS
+        value: 3600
+      - key: FRONTEND_URL
+        value: https://leetcode-analyzer.vercel.app  # Update with your Vercel domain
+      - key: ML_SERVICE_URL
+        value: https://leetcode-ml.onrender.com  # Will be the ML service URL
+      - key: ML_TIMEOUT_MS
+        value: 5000
+
+  # ── ML Service (Python / FastAPI) ──────────────────────────────────────────
+  - type: web
+    name: leetcode-ml
+    runtime: python-3.10
+    buildCommand: cd ml_service && pip install --no-cache-dir -r requirements.txt
+    startCommand: cd ml_service && uvicorn main:app --host 0.0.0.0 --port 8000
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://leetcode-analyzer.vercel.app,https://leetcode-backend.onrender.com
