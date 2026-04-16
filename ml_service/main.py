@@ -43,6 +43,19 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+# ── Root route ───────────────────────────────────────────────────────────────
+
+@app.get("/")
+async def root():
+    return {
+        "status": "ok",
+        "message": "LeetCode ML Prediction Service is running",
+        "endpoints": {
+            "docs": "/docs",
+            "predict": "/predict",
+        },
+    }
+
 # ── Request / Response schemas ────────────────────────────────────────────────
 
 class PredictRequest(BaseModel):
