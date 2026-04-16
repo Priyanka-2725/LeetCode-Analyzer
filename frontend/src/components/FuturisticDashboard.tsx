@@ -94,6 +94,37 @@ function avgOf(points: number[]): number {
   return points.reduce((a, b) => a + b, 0) / points.length;
 }
 
+function toUtcDateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftUtcDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
+function sumActivityWindow(activityMap: Map<string, number>, todayUtc: Date, fromDaysAgo: number, toDaysAgo: number): number {
+  let total = 0;
+  for (let offset = fromDaysAgo; offset <= toDaysAgo; offset++) {
+    const key = toUtcDateKey(shiftUtcDays(todayUtc, -offset));
+    total += activityMap.get(key) || 0;
+  }
+  return total;
+}
+
+function consistencyActivityWindow(activityMap: Map<string, number>, todayUtc: Date, fromDaysAgo: number, toDaysAgo: number): number {
+  let activeDays = 0;
+  const windowDays = Math.max(1, toDaysAgo - fromDaysAgo + 1);
+
+  for (let offset = fromDaysAgo; offset <= toDaysAgo; offset++) {
+    const key = toUtcDateKey(shiftUtcDays(todayUtc, -offset));
+    if ((activityMap.get(key) || 0) > 0) activeDays += 1;
+  }
+
+  return (activeDays / windowDays) * 100;
+}
+
 function pctDelta(current: number, previous: number): number | null {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
@@ -156,17 +187,45 @@ export default function FuturisticDashboard({
   const last30 = historyPoints.slice(-30);
   const prev30 = historyPoints.slice(-60, -30);
 
-  const solved7 = sumSolved(last7);
-  const solvedPrev7 = sumSolved(prev7);
-  const solved30 = sumSolved(last30);
-  const solvedPrev30 = sumSolved(prev30);
+  const activityMap = useMemo(
+    () => new Map((data.activityData || []).map((p) => [p.date, p.count])),
+    [data.activityData],
+  );
+  const todayUtc = useMemo(() => {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const fallbackSolved7 = sumActivityWindow(activityMap, todayUtc, 0, 6);
+  const fallbackSolvedPrev7 = sumActivityWindow(activityMap, todayUtc, 7, 13);
+  const fallbackSolved30 = sumActivityWindow(activityMap, todayUtc, 0, 29);
+  const fallbackSolvedPrev30 = sumActivityWindow(activityMap, todayUtc, 30, 59);
+
+  const fallbackConsistency7 = consistencyActivityWindow(activityMap, todayUtc, 0, 6);
+  const fallbackConsistencyPrev7 = consistencyActivityWindow(activityMap, todayUtc, 7, 13);
+
+  const hasHistory7 = last7.length >= 2;
+  const hasHistory30 = last30.length >= 2;
+  const hasHistoryConsistency = last7.length > 0;
+
+  const solved7 = hasHistory7 ? sumSolved(last7) : fallbackSolved7;
+  const solvedPrev7 = hasHistory7 ? sumSolved(prev7) : fallbackSolvedPrev7;
+  const solved30 = hasHistory30 ? sumSolved(last30) : fallbackSolved30;
+  const solvedPrev30 = hasHistory30 ? sumSolved(prev30) : fallbackSolvedPrev30;
 
   const solved7Delta = pctDelta(solved7, solvedPrev7);
   const solved30Delta = pctDelta(solved30, solvedPrev30);
 
-  const consistency7 = avgOf(last7.map((p) => p.consistencyScore));
-  const consistencyPrev7 = avgOf(prev7.map((p) => p.consistencyScore));
+  const consistency7 = hasHistoryConsistency
+    ? avgOf(last7.map((p) => p.consistencyScore))
+    : fallbackConsistency7;
+  const consistencyPrev7 = hasHistoryConsistency
+    ? avgOf(prev7.map((p) => p.consistencyScore))
+    : fallbackConsistencyPrev7;
   const consistencyDrop = consistencyPrev7 - consistency7;
+
+  const growthMetric = analytics?.growthRate ?? (solved30Delta ?? solved7Delta ?? 0);
 
   const alerts: { level: 'warning' | 'danger'; text: string }[] = [];
   if (consistencyDrop >= 10) {
@@ -181,10 +240,16 @@ export default function FuturisticDashboard({
       text: `Negative growth detected (${analytics?.growthRate}%). Consider a short recovery plan.`,
     });
   }
-  if (!forecast?.daysToTarget || forecast.daysToTarget > 180) {
+  if (forecast?.daysToTarget !== null && forecast?.daysToTarget !== undefined && forecast.daysToTarget > 180) {
     alerts.push({
       level: 'warning',
-      text: 'Forecast slippage: target ETA is unavailable or beyond 180 days at current pace.',
+      text: 'Forecast slippage: target ETA is beyond 180 days at current pace.',
+    });
+  }
+  if ((forecast?.daysToTarget === null || forecast?.daysToTarget === undefined) && solved30 > 0) {
+    alerts.push({
+      level: 'warning',
+      text: 'Forecast ETA is temporarily unavailable. Keep solving daily to improve projection quality.',
     });
   }
 
@@ -292,7 +357,7 @@ export default function FuturisticDashboard({
               <p className="text-xs text-slate-400">Current Growth</p>
               <Badge label="latest" />
             </div>
-            <p className="text-2xl font-semibold text-white">{(analytics?.growthRate || 0).toFixed(0)}%</p>
+            <p className="text-2xl font-semibold text-white">{growthMetric.toFixed(0)}%</p>
             <p className="text-xs mt-1 text-slate-400">Model growth indicator</p>
           </div>
         </div>
