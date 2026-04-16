@@ -172,6 +172,7 @@ export interface AnalysisResult {
   learningPath?: LearningPathEntry[];
   dailyPlan?: DailyPlan;
   recommendedProblems?: Problem[];
+  recentEvents?: SubmissionEvent[];
   cached?: boolean;
 }
 

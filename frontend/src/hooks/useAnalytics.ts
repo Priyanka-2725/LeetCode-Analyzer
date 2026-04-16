@@ -6,6 +6,7 @@ import {
   HistoryResponse,
   LoadingState,
   ProductivityPatterns,
+  SubmissionEvent,
 } from '../types';
 import {
   fetchAnalysis,
@@ -54,6 +55,44 @@ function parseError(err: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
+function derivePatternsFromEvents(username: string, sourceEvents: SubmissionEvent[]): ProductivityPatterns {
+  const weekdayOrder = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekdayCounts: Record<string, number> = {
+    Sun: 0,
+    Mon: 0,
+    Tue: 0,
+    Wed: 0,
+    Thu: 0,
+    Fri: 0,
+    Sat: 0,
+  };
+
+  const hourCounts: number[] = Array.from({ length: 24 }, () => 0);
+
+  for (const event of sourceEvents) {
+    const d = new Date(event.timestamp * 1000);
+    weekdayCounts[weekdayOrder[d.getUTCDay()]] += 1;
+    hourCounts[d.getUTCHours()] += 1;
+  }
+
+  const bestWeekday = weekdayOrder.reduce((best, day) =>
+    weekdayCounts[day] > weekdayCounts[best] ? day : best,
+  'Sun');
+
+  const bestHourUtc = hourCounts.reduce((best, count, idx, arr) =>
+    count > arr[best] ? idx : best,
+  0);
+
+  return {
+    username,
+    totalEvents: sourceEvents.length,
+    bestWeekday,
+    bestHourUtc,
+    weekdayCounts,
+    hourCounts,
+  };
+}
+
 export function useAnalytics(): UseAnalyticsReturn {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
@@ -100,23 +139,24 @@ export function useAnalytics(): UseAnalyticsReturn {
           : { username, days: 60, points: [] },
       );
 
-      setEvents(
-        eventsRes.status === 'fulfilled'
+      const fallbackRecentEvents = result.recentEvents || [];
+      const resolvedEvents =
+        eventsRes.status === 'fulfilled' && eventsRes.value.events.length > 0
           ? eventsRes.value
-          : { username, count: 0, events: [] },
-      );
-
-      setPatterns(
-        patternsRes.status === 'fulfilled'
-          ? patternsRes.value
           : {
             username,
-            totalEvents: 0,
-            bestWeekday: 'Sun',
-            bestHourUtc: 0,
-            weekdayCounts: { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 },
-            hourCounts: Array.from({ length: 24 }, () => 0),
-          },
+            count: fallbackRecentEvents.length,
+            events: fallbackRecentEvents,
+          };
+
+      setEvents(resolvedEvents);
+
+      const fallbackPatterns = derivePatternsFromEvents(username, resolvedEvents.events);
+
+      setPatterns(
+        patternsRes.status === 'fulfilled' && patternsRes.value.totalEvents > 0
+          ? patternsRes.value
+          : fallbackPatterns,
       );
 
       setForecast(

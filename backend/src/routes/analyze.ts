@@ -47,6 +47,25 @@ function buildMLInput(analytics: ReturnType<typeof computeAnalytics>, weakTopics
   };
 }
 
+function mapRecentEvents(recent: {
+  id: string;
+  title: string;
+  titleSlug: string;
+  timestamp: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Unknown';
+  topics: string[];
+}[]) {
+  return recent.map((s) => ({
+    submissionId: s.id,
+    title: s.title,
+    titleSlug: s.titleSlug,
+    difficulty: s.difficulty,
+    topics: s.topics,
+    timestamp: s.timestamp,
+    submittedAt: new Date(s.timestamp * 1000).toISOString(),
+  }));
+}
+
 // ── POST /api/analyze ─────────────────────────────────────────────────────────
 
 router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
@@ -125,7 +144,7 @@ router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
         // Skip history persistence on DB failures.
       }
 
-      const result = { ...dbCached, analytics, ...learning, mlPrediction, cached: true };
+      const result = { ...dbCached, analytics, ...learning, mlPrediction, recentEvents: [], cached: true };
       await setCache(cacheKey, JSON.stringify(result), CACHE_TTL);
       res.json(result);
       return;
@@ -158,7 +177,13 @@ router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
       buildMLInput(analytics, weakTopics.length),
     );
 
-    const fullResult = { ...analysis, analytics, ...learning, mlPrediction };
+    const fullResult = {
+      ...analysis,
+      analytics,
+      ...learning,
+      mlPrediction,
+      recentEvents: mapRecentEvents(rawData.recentAcceptedSubmissions),
+    };
 
     // Persist base analysis to MongoDB
     try {
