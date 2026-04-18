@@ -6,9 +6,6 @@ import {
   GoalForecast,
   HistoryResponse,
   ProductivityPatterns,
-  SimulationCurrentStats,
-  SimulationInput,
-  SimulationResponse,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -59,17 +56,6 @@ export async function fetchComparison(usernameA: string, usernameB: string): Pro
   const { data } = await api.post<ComparisonResponse>('/api/compare', {
     usernameA,
     usernameB,
-  });
-  return data;
-}
-
-export async function fetchSimulation(
-  currentStats: SimulationCurrentStats,
-  simulationInput: SimulationInput,
-): Promise<SimulationResponse> {
-  const { data } = await api.post<SimulationResponse>('/api/simulate', {
-    currentStats,
-    simulationInput,
   });
   return data;
 }

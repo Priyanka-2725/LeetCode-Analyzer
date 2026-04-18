@@ -322,41 +322,4 @@ export interface ComparisonResponse {
   summary: ComparisonSummary;
 }
 
-export interface SimulationCurrentStats {
-  totalSolved: number;
-  avgProblemsPerDay: number;
-  consistencyScore: number;
-  weakTopics: string[];
-}
-
-export interface SimulationDifficultyMix {
-  easy: number;
-  medium: number;
-  hard: number;
-}
-
-export interface SimulationInput {
-  problemsPerDay: number;
-  days: number;
-  goal?: number;
-  focusTopics: string[];
-  difficultyMix: SimulationDifficultyMix;
-}
-
-export interface TopicImprovement {
-  topic: string;
-  currentMastery: number;
-  projectedMastery: number;
-  improvement: number;
-}
-
-export interface SimulationResponse {
-  futureSolved: number;
-  daysToGoal: number | null;
-  updatedConsistency: number;
-  topicImprovement: TopicImprovement[];
-  growthProjection: number;
-  insights: string[];
-}
-
 export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
