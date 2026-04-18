@@ -168,6 +168,7 @@ export interface AnalysisResult {
   analytics?: Analytics;
   engine?: EngineReport;
   mlPrediction?: MLPrediction | null;
+  skillEvolution?: SkillEvolution;
   // Learning service output
   learningPath?: LearningPathEntry[];
   dailyPlan?: DailyPlan;
@@ -227,6 +228,22 @@ export interface GoalForecast {
   avgDailyProgress: number;
   daysToTarget: number | null;
   projectedDate: string | null;
+}
+
+export interface SkillTimelinePoint {
+  date: string;
+  count: number;
+}
+
+export interface SkillMasteryPoint {
+  date: string;
+  mastery: number;
+}
+
+export interface SkillEvolution {
+  topicTimeline: Record<string, SkillTimelinePoint[]>;
+  masteryTimeline: Record<string, SkillMasteryPoint[]>;
+  growthInsights: string[];
 }
 
 export interface ComparisonProfile {

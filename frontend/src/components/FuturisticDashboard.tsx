@@ -14,6 +14,7 @@ import TopicChart from './ui/TopicChart';
 import InsightsPanel from './ui/InsightsPanel';
 import RecommendationsPanel from './ui/RecommendationsPanel';
 import RecommendedQuestions from './ui/RecommendedQuestions';
+import SkillEvolution from './analytics/SkillEvolution';
 
 interface Props {
   data: AnalysisResult;
@@ -425,6 +426,11 @@ export default function FuturisticDashboard({
       <section>
         <SectionTitle sub="top topics">Topic Analytics</SectionTitle>
         <TopicChart topics={data.topics} />
+      </section>
+
+      <section>
+        <SectionTitle sub="time-based mastery">Skill Evolution Timeline</SectionTitle>
+        <SkillEvolution skillEvolution={data.skillEvolution} />
       </section>
 
       <section>

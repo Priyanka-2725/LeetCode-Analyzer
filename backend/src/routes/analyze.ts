@@ -7,6 +7,7 @@ import { getCache, setCache } from '../config/redis';
 import AnalysisResult from '../models/AnalysisResult';
 import { generateLearningOutput } from '../services/learningService';
 import { getMLPrediction } from '../services/mlService';
+import { buildSkillEvolution } from '../services/skillEvolutionService';
 import {
   exportHistoryCsv,
   getGoalForecast,
@@ -66,6 +67,26 @@ function mapRecentEvents(recent: {
   }));
 }
 
+function mapStoredEvents(recent: {
+  submissionId: string;
+  title: string;
+  titleSlug: string;
+  timestamp: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Unknown';
+  topics: string[];
+  submittedAt: Date;
+}[]) {
+  return recent.map((s) => ({
+    submissionId: s.submissionId,
+    title: s.title,
+    titleSlug: s.titleSlug,
+    difficulty: s.difficulty,
+    topics: s.topics,
+    timestamp: s.timestamp,
+    submittedAt: new Date(s.submittedAt).toISOString(),
+  }));
+}
+
 // ── POST /api/analyze ─────────────────────────────────────────────────────────
 
 router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
@@ -102,6 +123,8 @@ router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
     }).lean();
 
     if (dbCached) {
+      const storedEvents = await getSubmissionEvents(username, 200);
+
       const analytics = computeAnalytics({
         easy: dbCached.easy, medium: dbCached.medium, hard: dbCached.hard,
         totalSolved: dbCached.totalSolved, streak: dbCached.streak,
@@ -118,6 +141,14 @@ router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
         consistencyScore: analytics.consistencyScore,
         growthRate: analytics.growthRate,
       });
+
+      const skillEvolution = buildSkillEvolution(
+        storedEvents.map((event) => ({
+          timestamp: event.timestamp,
+          titleSlug: event.titleSlug,
+          difficulty: event.difficulty,
+        })),
+      );
 
       // Persist historical snapshot for trend analytics.
       try {
@@ -144,7 +175,15 @@ router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
         // Skip history persistence on DB failures.
       }
 
-      const result = { ...dbCached, analytics, ...learning, mlPrediction, recentEvents: [], cached: true };
+      const result = {
+        ...dbCached,
+        analytics,
+        ...learning,
+        mlPrediction,
+        recentEvents: mapStoredEvents(storedEvents),
+        skillEvolution,
+        cached: true,
+      };
       await setCache(cacheKey, JSON.stringify(result), CACHE_TTL);
       res.json(result);
       return;
@@ -183,6 +222,13 @@ router.post('/analyze', async (req: Request, res: Response): Promise<void> => {
       ...learning,
       mlPrediction,
       recentEvents: mapRecentEvents(rawData.recentAcceptedSubmissions),
+      skillEvolution: buildSkillEvolution(
+        rawData.recentAcceptedSubmissions.map((submission) => ({
+          timestamp: submission.timestamp,
+          titleSlug: submission.titleSlug,
+          difficulty: submission.difficulty,
+        })),
+      ),
     };
 
     // Persist base analysis to MongoDB
