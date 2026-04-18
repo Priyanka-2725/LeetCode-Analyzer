@@ -56,7 +56,61 @@ function fadeUp(delay = 0) {
 
 function TinyTrendChart({ points }: { points: { x: string; y: number }[] }) {
   if (!points.length) {
-    return <div className="text-xs text-slate-500">No historical data yet.</div>;
+    return (
+      <div
+        className="relative overflow-hidden rounded-[18px] border border-slate-800/80 min-h-[180px] p-4 flex flex-col justify-between"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(15,23,42,0.9) 0%, rgba(8,12,23,0.85) 100%)',
+        }}
+      >
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+        <div
+          className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-3xl"
+          style={{ background: 'rgba(99,102,241,0.16)' }}
+        />
+        <div className="relative z-10 space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/20 bg-cyan-500/8 text-cyan-300 text-[11px] font-medium">
+            <span className="w-2 h-2 rounded-full bg-cyan-300" />
+            Waiting for snapshot history
+          </div>
+          <div>
+            <p className="text-sm text-slate-300 font-medium">No historical trend data yet.</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Run a few analyses to populate daily snapshots and unlock the solved trend graph.
+            </p>
+          </div>
+        </div>
+
+        <div className="relative z-10 mt-6">
+          <div className="h-24 rounded-xl border border-slate-800/70 bg-slate-950/30 overflow-hidden flex items-end gap-2 px-3 py-3">
+            {[22, 42, 34, 58, 46, 66, 38].map((height, index) => (
+              <div
+                key={`${height}-${index}`}
+                className="flex-1 rounded-t-md"
+                style={{
+                  height: `${height}%`,
+                  background:
+                    'linear-gradient(180deg, rgba(34,211,238,0.45) 0%, rgba(99,102,241,0.12) 100%)',
+                  boxShadow: '0 0 12px rgba(34,211,238,0.12)',
+                }}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-600 mt-2">
+            <span>Snapshot start</span>
+            <span>Snapshot end</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const min = Math.min(...points.map((p) => p.y));
@@ -73,7 +127,7 @@ function TinyTrendChart({ points }: { points: { x: string; y: number }[] }) {
 
   return (
     <div className="space-y-2">
-      <svg viewBox="0 0 100 100" className="w-full h-24 rounded-lg bg-slate-900/40 border border-slate-800">
+      <svg viewBox="0 0 100 100" className="w-full h-24 rounded-lg border border-slate-800/70 bg-slate-950/45">
         <path d={path} fill="none" stroke="#22D3EE" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
       <div className="flex justify-between text-[10px] text-slate-500">
