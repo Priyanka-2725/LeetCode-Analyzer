@@ -5,6 +5,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import FuturisticDashboard from './components/FuturisticDashboard';
 import FuturisticInput from './components/FuturisticInput';
 import ComparisonPanel from './components/ComparisonPanel';
+import Simulator from './components/Simulator';
 
 function LandingHero({ onAnalyze, loading }: { onAnalyze: (v: string) => void; loading: boolean }) {
   return (
@@ -230,6 +231,23 @@ export default function App() {
           transition={{ duration: 0.35 }}
         >
           <ComparisonPanel />
+        </motion.div>
+      );
+    }
+
+    if (activeSection === 'simulate') {
+      if (!showDashboard || !data) {
+        return <DataLockedState onGoDashboard={() => setActiveSection('dashboard')} />;
+      }
+
+      return (
+        <motion.div
+          key="simulate"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <Simulator data={data} />
         </motion.div>
       );
     }

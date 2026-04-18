@@ -8,6 +8,7 @@ import AnalysisResult from '../models/AnalysisResult';
 import { generateLearningOutput } from '../services/learningService';
 import { getMLPrediction } from '../services/mlService';
 import { buildSkillEvolution } from '../services/skillEvolutionService';
+import { runSimulation } from '../services/simulationService';
 import {
   exportHistoryCsv,
   getGoalForecast,
@@ -350,6 +351,22 @@ router.get('/forecast/:username', async (req: Request, res: Response): Promise<v
       daysToTarget: null,
       projectedDate: null,
     });
+  }
+});
+
+router.post('/simulate', async (req: Request, res: Response): Promise<void> => {
+  const { currentStats, simulationInput } = req.body || {};
+
+  if (!currentStats || !simulationInput) {
+    res.status(400).json({ error: 'currentStats and simulationInput are required' });
+    return;
+  }
+
+  try {
+    const result = runSimulation({ currentStats, simulationInput });
+    res.json(result);
+  } catch {
+    res.status(400).json({ error: 'Invalid simulation payload' });
   }
 });
 

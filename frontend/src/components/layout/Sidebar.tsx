@@ -38,6 +38,16 @@ const navItems: NavItem[] = [
       </svg>
     ),
   },
+  {
+    id: 'simulate',
+    label: 'Simulator',
+    icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M12 3v4m0 0a5 5 0 015 5m-5-5a5 5 0 00-5 5m5 9v-4m0 0a5 5 0 01-5-5m5 5a5 5 0 005-5" />
+      </svg>
+    ),
+  },
 ];
 
 interface SidebarProps {
