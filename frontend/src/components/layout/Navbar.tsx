@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface NavbarProps {
@@ -8,11 +8,35 @@ interface NavbarProps {
 
 export default function Navbar({ username, onMobileMenuToggle }: NavbarProps) {
   const [searchFocused, setSearchFocused] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [hasNotif] = useState(true);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setNotifOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-4 px-4 md:px-7 h-[60px]"
+      className="sticky top-0 z-30 relative flex items-center gap-4 px-4 md:px-7 h-[60px]"
       style={{
         background: 'rgba(8,12,23,0.75)',
         backdropFilter: 'blur(28px) saturate(180%)',
@@ -83,23 +107,73 @@ export default function Navbar({ username, onMobileMenuToggle }: NavbarProps) {
 
       <div className="flex items-center gap-2 ml-auto">
         {/* Notification bell */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative p-2 rounded-[11px] transition-all"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-        >
-          <svg className="w-[17px] h-[17px] text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          {hasNotif && (
-            <span
-              className="absolute top-1 right-1 w-[7px] h-[7px] rounded-full"
-              style={{ background: '#6366F1', boxShadow: '0 0 8px rgba(99,102,241,0.9)' }}
-            />
+        <div ref={notifRef} className="relative">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setNotifOpen((open) => !open)}
+            aria-expanded={notifOpen}
+            aria-label="Open notifications"
+            className="relative p-2 rounded-[11px] transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            <svg className="w-[17px] h-[17px] text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {hasNotif && (
+              <span
+                className="absolute top-1 right-1 w-[7px] h-[7px] rounded-full"
+                style={{ background: '#6366F1', boxShadow: '0 0 8px rgba(99,102,241,0.9)' }}
+              />
+            )}
+          </motion.button>
+
+          {notifOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute right-0 top-[calc(100%+10px)] w-[280px] rounded-[18px] overflow-hidden border border-white/8 shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+              style={{
+                background: 'linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(8,12,23,0.98) 100%)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              }}
+            >
+              <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Notifications</p>
+                  <p className="text-[11px] text-slate-500">Recent activity and updates</p>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                  Live
+                </span>
+              </div>
+
+              <div className="p-3 space-y-2">
+                <div className="rounded-[14px] p-3 border border-white/5 bg-white/[0.03]">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 w-2 h-2 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-slate-200 font-medium">No new alerts</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Your latest analysis is up to date.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[14px] p-3 border border-dashed border-white/6 bg-white/[0.02]">
+                  <p className="text-[11px] text-slate-500">
+                    This panel is ready for future alerts, reminders, and progress updates.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
           )}
-        </motion.button>
+        </div>
 
         {/* Divider */}
         <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.07)' }} />
