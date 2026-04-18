@@ -77,6 +77,17 @@ query recentAcSubmissions($username: String!, $limit: Int!) {
 }
 `;
 
+const QUESTION_METADATA_QUERY = `
+query questionMetadata($titleSlug: String!) {
+  question(titleSlug: $titleSlug) {
+    difficulty
+    topicTags {
+      name
+    }
+  }
+}
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface TagCount {
@@ -115,6 +126,11 @@ const topicsBySlug = new Map(
   (problems as { slug: string; topics?: string[] }[]).map((p) => [p.slug, p.topics || []])
 );
 
+const liveQuestionMetaCache = new Map<string, {
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Unknown';
+  topics: string[];
+}>();
+
 // ─── GraphQL helper ───────────────────────────────────────────────────────────
 
 async function gqlRequest<T>(
@@ -133,6 +149,42 @@ async function gqlRequest<T>(
   }
 
   return response.data.data as T;
+}
+
+async function fetchQuestionMetadata(titleSlug: string): Promise<{
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Unknown';
+  topics: string[];
+} | null> {
+  const cached = liveQuestionMetaCache.get(titleSlug);
+  if (cached) return cached;
+
+  try {
+    const data = await gqlRequest<{
+      question: {
+        difficulty: string;
+        topicTags?: { name: string }[];
+      } | null;
+    }>(QUESTION_METADATA_QUERY, { titleSlug });
+
+    if (!data.question) return null;
+
+    const difficulty =
+      data.question.difficulty === 'Easy'
+      || data.question.difficulty === 'Medium'
+      || data.question.difficulty === 'Hard'
+        ? data.question.difficulty
+        : 'Unknown';
+
+    const topics = (data.question.topicTags || [])
+      .map((tag) => tag.name)
+      .filter(Boolean);
+
+    const metadata = { difficulty, topics };
+    liveQuestionMetaCache.set(titleSlug, metadata);
+    return metadata;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Main fetcher ─────────────────────────────────────────────────────────────
@@ -208,9 +260,46 @@ export async function fetchLeetCodeData(username: string): Promise<LeetCodeRawDa
     streak = cal.streak ?? 0;
   }
 
-  const recentAcceptedSubmissions = (recentData.recentAcSubmissionList || []).map((s) => {
+  const recentList = recentData.recentAcSubmissionList || [];
+
+  const missingMetadataSlugs = Array.from(new Set(
+    recentList
+      .map((s) => s.titleSlug)
+      .filter((slug) => !difficultyBySlug.has(slug) || !topicsBySlug.has(slug)),
+  ));
+
+  const liveMetadataBySlug = new Map<string, {
+    difficulty: 'Easy' | 'Medium' | 'Hard' | 'Unknown';
+    topics: string[];
+  }>();
+
+  if (missingMetadataSlugs.length) {
+    const metadataResults = await Promise.allSettled(
+      missingMetadataSlugs.map((slug) => fetchQuestionMetadata(slug)),
+    );
+
+    for (let i = 0; i < metadataResults.length; i++) {
+      const result = metadataResults[i];
+      if (result.status === 'fulfilled' && result.value) {
+        liveMetadataBySlug.set(missingMetadataSlugs[i], result.value);
+      }
+    }
+  }
+
+  const recentAcceptedSubmissions = recentList.map((s) => {
+    const localDifficulty = difficultyBySlug.get(s.titleSlug);
+    const localTopics = topicsBySlug.get(s.titleSlug);
+    const liveMetadata = liveMetadataBySlug.get(s.titleSlug);
+
     const difficulty: LeetCodeRawData['recentAcceptedSubmissions'][number]['difficulty'] =
-      difficultyBySlug.get(s.titleSlug) ?? 'Unknown';
+      localDifficulty
+      ?? liveMetadata?.difficulty
+      ?? 'Unknown';
+
+    const topics =
+      localTopics && localTopics.length > 0
+        ? localTopics
+        : (liveMetadata?.topics || []);
 
     return {
       id: s.id,
@@ -218,7 +307,7 @@ export async function fetchLeetCodeData(username: string): Promise<LeetCodeRawDa
       titleSlug: s.titleSlug,
       timestamp: Number(s.timestamp),
       difficulty,
-      topics: topicsBySlug.get(s.titleSlug) || [],
+      topics,
     };
   });
 
