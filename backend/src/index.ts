@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { connectMongoDB } from './config/database';
 import { connectRedis } from './config/redis';
 import analyzeRouter from './routes/analyze';
+import compareRouter from './routes/compare';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api', analyzeRouter);
+app.use('/api', compareRouter);
 
 // Root route
 app.get('/', (_req, res) => {
@@ -51,6 +53,7 @@ app.get('/', (_req, res) => {
     endpoints: {
       health: '/health',
       analyze: '/api/analyze',
+        compare: '/api/compare',
     },
   });
 });

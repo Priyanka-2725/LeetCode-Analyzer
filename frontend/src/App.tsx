@@ -4,6 +4,7 @@ import { useAnalytics } from './hooks/useAnalytics';
 import DashboardLayout from './components/layout/DashboardLayout';
 import FuturisticDashboard from './components/FuturisticDashboard';
 import FuturisticInput from './components/FuturisticInput';
+import ComparisonPanel from './components/ComparisonPanel';
 
 function LandingHero({ onAnalyze, loading }: { onAnalyze: (v: string) => void; loading: boolean }) {
   return (
@@ -220,6 +221,19 @@ export default function App() {
   const showDashboard = loadingState === 'success' && data;
 
   const renderSection = () => {
+    if (activeSection === 'compare') {
+      return (
+        <motion.div
+          key="compare"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <ComparisonPanel />
+        </motion.div>
+      );
+    }
+
     if (!showDashboard) {
       if (activeSection === 'dashboard') {
         return <LandingHero onAnalyze={analyze} loading={false} />;

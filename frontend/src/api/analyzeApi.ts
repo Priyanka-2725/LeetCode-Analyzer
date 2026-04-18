@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
   AnalysisResult,
+  ComparisonResponse,
   EventsResponse,
   GoalForecast,
   HistoryResponse,
@@ -49,4 +50,12 @@ export async function fetchForecast(username: string, target = 500): Promise<Goa
 
 export function getExportUrl(username: string): string {
   return `${BASE_URL}/api/export/${encodeURIComponent(username)}`;
+}
+
+export async function fetchComparison(usernameA: string, usernameB: string): Promise<ComparisonResponse> {
+  const { data } = await api.post<ComparisonResponse>('/api/compare', {
+    usernameA,
+    usernameB,
+  });
+  return data;
 }

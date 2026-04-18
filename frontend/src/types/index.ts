@@ -229,4 +229,80 @@ export interface GoalForecast {
   projectedDate: string | null;
 }
 
+export interface ComparisonProfile {
+  username: string;
+  stats: {
+    totalSolved: number;
+    easy: number;
+    medium: number;
+    hard: number;
+    streak: number;
+  };
+  features: {
+    avgProblemsPerDay: number;
+    consistencyScore: number;
+    growthRate: number;
+    strongestTopic: string;
+    weakestTopic: string;
+    easyPct: number;
+    mediumPct: number;
+    hardPct: number;
+  };
+  topicStats: TopicMastery[];
+  consistencyScore: number;
+  growthRate: number;
+}
+
+export interface MetricComparisonItem {
+  userA: number;
+  userB: number;
+  difference: number;
+  winner: 'A' | 'B' | 'Tie';
+}
+
+export interface ComparisonMetricComparison {
+  totalSolved: MetricComparisonItem;
+  avgProblemsPerDay: MetricComparisonItem;
+  consistencyScore: MetricComparisonItem;
+  growthRate: MetricComparisonItem;
+}
+
+export interface ComparisonTopicDelta {
+  topic: string;
+  userA: number;
+  userB: number;
+  difference: number;
+}
+
+export interface ComparisonDifficultyFocus {
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  userA: number;
+  userB: number;
+  difference: number;
+  winner: 'A' | 'B' | 'Tie';
+}
+
+export interface ComparisonTopicComparison {
+  topicDeltas: ComparisonTopicDelta[];
+  strongerTopicsA: ComparisonTopicDelta[];
+  strongerTopicsB: ComparisonTopicDelta[];
+  difficultyFocus: ComparisonDifficultyFocus[];
+}
+
+export interface ComparisonSummary {
+  overallBetter: string;
+  reason: string;
+}
+
+export interface ComparisonResponse {
+  profiles: {
+    userA: ComparisonProfile;
+    userB: ComparisonProfile;
+  };
+  metricComparison: ComparisonMetricComparison;
+  topicComparison: ComparisonTopicComparison;
+  insights: string[];
+  summary: ComparisonSummary;
+}
+
 export type LoadingState = 'idle' | 'loading' | 'success' | 'error';

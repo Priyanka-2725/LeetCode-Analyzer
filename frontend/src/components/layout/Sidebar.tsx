@@ -28,6 +28,16 @@ const navItems: NavItem[] = [
       </svg>
     ),
   },
+  {
+    id: 'compare',
+    label: 'Compare',
+    icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M9 5l-5 5 5 5M20 5l-5 5 5 5M4 10h16" />
+      </svg>
+    ),
+  },
 ];
 
 interface SidebarProps {
